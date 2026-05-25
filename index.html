@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>严谨智能体 Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #667085;
+      --line: #d8dde6;
+      --accent: #0f766e;
+      --accent-dark: #0b5f59;
+      --warning: #b45309;
+      --danger: #b42318;
+      --ok: #047857;
+      --code: #111827;
+      --chip: #eef6f5;
+      --shadow: 0 18px 45px rgba(31, 41, 55, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, #f9fafb 0%, var(--bg) 48%, #eef2f6 100%);
+      color: var(--ink);
+      font-family:
+        "Microsoft YaHei",
+        "PingFang SC",
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .app {
+      width: min(1180px, calc(100vw - 32px));
+      min-height: 100vh;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 18px;
+      padding: 22px 0;
+    }
+
+    .sidebar,
+    .chat-shell {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      align-self: start;
+      border-radius: 8px;
+      padding: 20px;
+      position: sticky;
+      top: 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .section-title {
+      margin: 18px 0 10px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .rule-list,
+    .tool-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .rule,
+    .tool {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfd;
+    }
+
+    .rule strong,
+    .tool strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .rule span,
+    .tool span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .chat-shell {
+      min-height: calc(100vh - 44px);
+      border-radius: 8px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      background: #fff;
+    }
+
+    .chat-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 112px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: var(--chip);
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .messages {
+      padding: 20px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.88), rgba(246,247,249,0.88));
+    }
+
+    .message {
+      width: min(680px, 92%);
+      display: grid;
+      gap: 7px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+    }
+
+    .message.agent,
+    .message.tool-result,
+    .message.system {
+      align-self: flex-start;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .user .label {
+      text-align: right;
+    }
+
+    .bubble {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fff;
+      line-height: 1.65;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .user .bubble {
+      border-color: #b9dcd8;
+      background: #eaf7f5;
+    }
+
+    .tool-result .bubble {
+      border-color: #d8c7a4;
+      background: #fff8eb;
+    }
+
+    .system .bubble {
+      border-color: #f0c6c2;
+      background: #fff4f3;
+    }
+
+    pre {
+      margin: 0;
+      padding: 13px;
+      border-radius: 8px;
+      background: var(--code);
+      color: #e5e7eb;
+      overflow: auto;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .composer {
+      padding: 16px 20px 18px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+      display: grid;
+      gap: 12px;
+    }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .example,
+    .send,
+    .clear,
+    .confirm,
+    .deny {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-height: 38px;
+      padding: 0 12px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      transition: 140ms ease;
+    }
+
+    .example:hover,
+    .clear:hover,
+    .confirm:hover,
+    .deny:hover {
+      transform: translateY(-1px);
+      border-color: #aab4c3;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+    }
+
+    input {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 13px;
+      color: var(--ink);
+      outline: none;
+      background: #fff;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+    }
+
+    .send {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .send:hover {
+      background: var(--accent-dark);
+    }
+
+    .clear {
+      color: var(--muted);
+    }
+
+    .confirm-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .confirm {
+      border-color: var(--ok);
+      color: var(--ok);
+      font-weight: 800;
+    }
+
+    .deny {
+      border-color: var(--danger);
+      color: var(--danger);
+      font-weight: 800;
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        grid-template-columns: 1fr;
+        width: min(100vw - 20px, 720px);
+        padding: 10px 0;
+      }
+
+      .sidebar {
+        position: static;
+      }
+
+      .chat-shell {
+        min-height: 70vh;
+      }
+
+      .chat-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .input-row {
+        grid-template-columns: 1fr;
+      }
+
+      .send,
+      .clear {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="sidebar" aria-label="规则与工具说明">
+      <p class="eyebrow">AI Agent Demo</p>
+      <h1>严谨工具调用智能体</h1>
+      <p class="subtitle">
+        这个小 demo 演示一个客服型智能体如何识别意图、补齐必要信息、输出纯 JSON 工具调用，并在执行代码前请求确认。
+      </p>
+
+      <p class="section-title">核心规则</p>
+      <ul class="rule-list">
+        <li class="rule">
+          <strong>不猜测，只执行</strong>
+          <span>订单、天气等事实类问题必须走工具调用。</span>
+        </li>
+        <li class="rule">
+          <strong>每一步都要明确</strong>
+          <span>缺少参数时，只问一个封闭、清晰的问题。</span>
+        </li>
+        <li class="rule">
+          <strong>操作前必确认</strong>
+          <span>执行代码等有副作用或风险的动作先说明影响。</span>
+        </li>
+        <li class="rule">
+          <strong>失败即降级</strong>
+          <span>两次无法理解或工具失败后，转接人工。</span>
+        </li>
+      </ul>
+
+      <p class="section-title">可用工具</p>
+      <ul class="tool-list">
+        <li class="tool">
+          <strong>query_order(order_id)</strong>
+          <span>查询订单详情。</span>
+        </li>
+        <li class="tool">
+          <strong>get_weather(city)</strong>
+          <span>获取城市天气。</span>
+        </li>
+        <li class="tool">
+          <strong>execute_code_sandbox(code, lang)</strong>
+          <span>在沙箱中执行 Python 或 Bash。</span>
+        </li>
+        <li class="tool">
+          <strong>escalate_to_human(summary)</strong>
+          <span>转接人工客服。</span>
+        </li>
+      </ul>
+    </aside>
+
+    <section class="chat-shell" aria-label="智能体交互区">
+      <header class="chat-header">
+        <div>
+          <h2 class="chat-title">对话模拟器</h2>
+          <p class="subtitle" style="margin: 6px 0 0;">输入自然语言，观察智能体的决策和工具调用格式。</p>
+        </div>
+        <div class="status" aria-live="polite">
+          <span class="status-dot"></span>
+          <span id="statusText">等待输入</span>
+        </div>
+      </header>
+
+      <div class="messages" id="messages" aria-live="polite"></div>
+
+      <form class="composer" id="composer">
+        <div class="examples" aria-label="示例输入">
+          <button class="example" type="button">查询订单 20260525001</button>
+          <button class="example" type="button">北京天气怎么样</button>
+          <button class="example" type="button">运行 Python：print(1 + 1)</button>
+          <button class="example" type="button">取消订单 20260525001</button>
+          <button class="example" type="button">查一下天气</button>
+        </div>
+        <div class="input-row">
+          <input id="prompt" autocomplete="off" placeholder="例如：查询订单 20260525001" aria-label="输入消息">
+          <button class="send" type="submit">发送</button>
+          <button class="clear" id="clearBtn" type="button">清空</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const messages = document.querySelector("#messages");
+    const promptInput = document.querySelector("#prompt");
+    const composer = document.querySelector("#composer");
+    const statusText = document.querySelector("#statusText");
+    const clearBtn = document.querySelector("#clearBtn");
+
+    const state = {
+      unknownCount: 0,
+      pendingConfirmation: null,
+      pendingQuestion: null
+    };
+
+    const sampleOrders = {
+      "20260525001": {
+        order_id: "20260525001",
+        status: "已发货",
+        item: "桌面收纳架",
+        eta: "2026-05-27",
+        carrier: "顺丰速运"
+      },
+      "20260525002": {
+        order_id: "20260525002",
+        status: "待支付",
+        item: "机械键盘",
+        eta: null,
+        carrier: null
+      }
+    };
+
+    const weather = {
+      "北京": "北京：晴，23°C，北风 2 级。",
+      "上海": "上海：多云，25°C，东南风 3 级。",
+      "广州": "广州：小雨，28°C，空气湿度较高。",
+      "深圳": "深圳：阴，27°C，午后可能有阵雨。",
+      "杭州": "杭州：多云，24°C，适合通勤。"
+    };
+
+    function addMessage(type, label, content, options = {}) {
+      const wrap = document.createElement("article");
+      wrap.className = `message ${type}`;
+
+      const labelEl = document.createElement("div");
+      labelEl.className = "label";
+      labelEl.textContent = label;
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+
+      if (options.code) {
+        const pre = document.createElement("pre");
+        pre.textContent = content;
+        bubble.appendChild(pre);
+      } else {
+        bubble.textContent = content;
+      }
+
+      if (options.confirmation) {
+        const actions = document.createElement("div");
+        actions.className = "confirm-row";
+
+        const confirm = document.createElement("button");
+        confirm.className = "confirm";
+        confirm.type = "button";
+        confirm.textContent = "确认执行";
+        confirm.addEventListener("click", () => runPendingTool());
+
+        const deny = document.createElement("button");
+        deny.className = "deny";
+        deny.type = "button";
+        deny.textContent = "取消";
+        deny.addEventListener("click", () => denyPendingTool());
+
+        actions.append(confirm, deny);
+        bubble.appendChild(actions);
+      }
+
+      wrap.append(labelEl, bubble);
+      messages.appendChild(wrap);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function setStatus(text) {
+      statusText.textContent = text;
+    }
+
+    function jsonCall(tool, args) {
+      return JSON.stringify({ tool, args }, null, 2);
+    }
+
+    function simulateTool(tool, args) {
+      if (tool === "query_order") {
+        const found = sampleOrders[args.order_id];
+        if (!found) {
+          return {
+            ok: false,
+            result: {
+              error: "ORDER_NOT_FOUND",
+              message: `未查询到订单 ${args.order_id}`
+            }
+          };
+        }
+        return { ok: true, result: found };
+      }
+
+      if (tool === "get_weather") {
+        const result = weather[args.city] || `${args.city}：暂无模拟天气数据。`;
+        return { ok: true, result };
+      }
+
+      if (tool === "execute_code_sandbox") {
+        const normalized = args.code.trim();
+        const supported = args.lang === "Python" || args.lang === "Bash";
+        if (!supported) {
+          return {
+            ok: false,
+            result: {
+              error: "UNSUPPORTED_LANG",
+              message: "沙箱仅支持 Python/Bash"
+            }
+          };
+        }
+        if (normalized === "print(1 + 1)" || normalized === "print(1+1)") {
+          return { ok: true, result: "2" };
+        }
+        return {
+          ok: true,
+          result: "已在模拟沙箱中接收代码。这个前端 demo 不会执行真实系统命令。"
+        };
+      }
+
+      if (tool === "escalate_to_human") {
+        return {
+          ok: true,
+          result: {
+            ticket_id: "HUMAN-20260525-001",
+            summary: args.summary,
+            status: "已转人工"
+          }
+        };
+      }
+
+      return {
+        ok: false,
+        result: {
+          error: "UNKNOWN_TOOL",
+          message: `工具 ${tool} 不存在`
+        }
+      };
+    }
+
+    function showToolCall(tool, args) {
+      addMessage("agent", "AI 输出：纯 JSON 工具调用", jsonCall(tool, args), { code: true });
+      const response = simulateTool(tool, args);
+      addMessage(
+        response.ok ? "tool-result" : "system",
+        response.ok ? "工具返回" : "工具失败",
+        JSON.stringify(response.result, null, 2),
+        { code: true }
+      );
+
+      if (!response.ok) {
+        state.unknownCount += 1;
+        if (state.unknownCount >= 2) {
+          escalate("连续两次无法完成用户请求或工具调用失败。");
+        }
+      } else {
+        state.unknownCount = 0;
+      }
+    }
+
+    function extractOrderId(text) {
+      const match = text.match(/\b\d{8,}\b/);
+      return match ? match[0] : "";
+    }
+
+    function extractCity(text) {
+      const knownCities = Object.keys(weather);
+      return knownCities.find(city => text.includes(city)) || "";
+    }
+
+    function extractCode(text) {
+      const codeMarker = text.match(/(?:Python|python|Bash|bash|代码|运行)[:：]?\s*(.+)$/);
+      if (codeMarker && codeMarker[1]) {
+        return codeMarker[1].trim();
+      }
+      return "";
+    }
+
+    function extractLang(text) {
+      if (/bash|shell/i.test(text)) return "Bash";
+      if (/python|py/i.test(text)) return "Python";
+      return "Python";
+    }
+
+    function askOneQuestion(question, expectation) {
+      state.pendingQuestion = expectation;
+      addMessage("agent", "AI 提问", question);
+      setStatus("等待补充信息");
+    }
+
+    function requestConfirmation(tool, args, explanation) {
+      state.pendingConfirmation = { tool, args };
+      addMessage("agent", "AI 确认", explanation, { confirmation: true });
+      setStatus("等待确认");
+    }
+
+    function runPendingTool() {
+      if (!state.pendingConfirmation) return;
+      const pending = state.pendingConfirmation;
+      state.pendingConfirmation = null;
+      setStatus("调用工具");
+      showToolCall(pending.tool, pending.args);
+      setStatus("等待输入");
+    }
+
+    function denyPendingTool() {
+      state.pendingConfirmation = null;
+      addMessage("agent", "AI 输出", "已取消本次操作，未调用工具。");
+      setStatus("等待输入");
+    }
+
+    function escalate(summary) {
+      state.unknownCount = 0;
+      showToolCall("escalate_to_human", { summary });
+      setStatus("已转人工");
+    }
+
+    function handlePendingQuestion(text) {
+      const pending = state.pendingQuestion;
+      state.pendingQuestion = null;
+
+      if (pending === "city") {
+        const city = extractCity(text) || text.replace(/[。.!！?？\s]/g, "");
+        if (!city) {
+          askOneQuestion("请提供城市名，例如：北京。", "city");
+          return true;
+        }
+        showToolCall("get_weather", { city });
+        setStatus("等待输入");
+        return true;
+      }
+
+      if (pending === "order_id") {
+        const orderId = extractOrderId(text);
+        if (!orderId) {
+          askOneQuestion("请提供订单号，例如：20260525001。", "order_id");
+          return true;
+        }
+        showToolCall("query_order", { order_id: orderId });
+        setStatus("等待输入");
+        return true;
+      }
+
+      if (pending === "code") {
+        const lang = extractLang(text);
+        requestConfirmation(
+          "execute_code_sandbox",
+          { code: text, lang },
+          `执行代码会把内容发送到安全沙箱。本 demo 仅做模拟，不会执行真实系统命令。是否确认执行 ${lang} 代码？`
+        );
+        return true;
+      }
+
+      return false;
+    }
+
+    function handleUserText(text) {
+      if (state.pendingConfirmation) {
+        if (/^(确认|同意|执行|yes|y)$/i.test(text.trim())) {
+          runPendingTool();
+          return;
+        }
+        if (/^(取消|不同意|否|no|n)$/i.test(text.trim())) {
+          denyPendingTool();
+          return;
+        }
+        addMessage("agent", "AI 提问", "请回复“确认”或“取消”。");
+        return;
+      }
+
+      if (state.pendingQuestion && handlePendingQuestion(text)) {
+        return;
+      }
+
+      if (/取消订单|删除订单|退款|支付|改地址/.test(text)) {
+        state.unknownCount = 0;
+        escalate("用户请求订单变更类操作，但当前工具列表不包含取消、退款、支付或改地址工具。");
+        return;
+      }
+
+      if (/订单|快递|物流/.test(text)) {
+        const orderId = extractOrderId(text);
+        if (!orderId) {
+          askOneQuestion("请提供订单号，例如：20260525001。", "order_id");
+          return;
+        }
+        showToolCall("query_order", { order_id: orderId });
+        setStatus("等待输入");
+        return;
+      }
+
+      if (/天气|气温|下雨|温度/.test(text)) {
+        const city = extractCity(text);
+        if (!city) {
+          askOneQuestion("请提供城市名，例如：北京。", "city");
+          return;
+        }
+        showToolCall("get_weather", { city });
+        setStatus("等待输入");
+        return;
+      }
+
+      if (/运行|执行|代码|python|bash|shell/i.test(text)) {
+        const code = extractCode(text);
+        const lang = extractLang(text);
+        if (!code) {
+          askOneQuestion("请提供要执行的 Python 或 Bash 代码。", "code");
+          return;
+        }
+        requestConfirmation(
+          "execute_code_sandbox",
+          { code, lang },
+          `执行代码会把内容发送到安全沙箱。本 demo 仅做模拟，不会执行真实系统命令。是否确认执行 ${lang} 代码？`
+        );
+        return;
+      }
+
+      state.unknownCount += 1;
+      if (state.unknownCount >= 2) {
+        escalate(`连续两次无法理解用户意图。最近一次输入：${text}`);
+      } else {
+        addMessage("agent", "AI 提问", "请选择要办理的类型：订单查询、天气查询，或代码执行。");
+        setStatus("等待澄清");
+      }
+    }
+
+    composer.addEventListener("submit", event => {
+      event.preventDefault();
+      const text = promptInput.value.trim();
+      if (!text) return;
+
+      addMessage("user", "用户输入", text);
+      promptInput.value = "";
+      setStatus("分析意图");
+
+      window.setTimeout(() => handleUserText(text), 180);
+    });
+
+    document.querySelectorAll(".example").forEach(button => {
+      button.addEventListener("click", () => {
+        promptInput.value = button.textContent;
+        promptInput.focus();
+      });
+    });
+
+    clearBtn.addEventListener("click", () => {
+      messages.innerHTML = "";
+      state.unknownCount = 0;
+      state.pendingConfirmation = null;
+      state.pendingQuestion = null;
+      setStatus("等待输入");
+      addWelcome();
+    });
+
+    function addWelcome() {
+      addMessage(
+        "agent",
+        "AI 输出",
+        "你好，我会严格按规则处理：事实问题先调用工具，信息不足只问一个问题，执行代码前先确认。"
+      );
+    }
+
+    addWelcome();
+  </script>
+</body>
+</html>
